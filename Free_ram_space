@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# Get available RAM in MB
+FREE_SPACE=$(free -mt | awk '/Total/ {print $4}')
+
+# Minimum free RAM threshold in MB
+THRESHOLD=500
+
+if [[ $FREE_SPACE -lt $THRESHOLD ]]
+then
+    echo "WARNING: RAM is running low."
+    echo "Available RAM: ${FREE_SPACE} MB"
+else
+    echo "RAM is sufficient."
+    echo "Available RAM: ${FREE_SPACE} MB"
+fi
