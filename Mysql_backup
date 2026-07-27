@@ -1,0 +1,44 @@
+#!/bin/bash
+
+#Pipe command for not failing we use this 
+set -o pipefail 
+
+DATE=$(date +"%F_%H-%M-%S")
+
+DB_USER="root"
+DB_PASS="********"
+
+BACKUP_DIR="/backup/mysql"
+
+RETENTION_DAYS=5
+
+mkdir -p "$BACKUP_DIR"
+
+DATABASES=$(mysql -N -u"$DB_USER" -p"$DB_PASS" -e "
+SELECT schema_name
+FROM information_schema.schemata
+WHERE schema_name NOT IN
+('mysql','information_schema','performance_schema','sys');
+")
+
+for DB in $DATABASES
+do
+    echo "Backing up: $DB"
+
+    mysqldump -u"$DB_USER" -p"$DB_PASS" \
+        --single-transaction \
+        --routines \
+        --triggers \
+        --events \
+        "$DB" | gzip > "$BACKUP_DIR/${DB}_${DATE}.sql.gz"
+
+    if [ $? -eq 0 ]; then
+        echo "$DB backup completed."
+    else
+        echo "$DB backup failed."
+    fi
+done
+
+find "$BACKUP_DIR" -type f -name "*.sql.gz" -mtime +$RETENTION_DAYS -delete
+
+echo "MySQL backup process completed."
